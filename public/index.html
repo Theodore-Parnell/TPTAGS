@@ -2,139 +2,51 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>TPTags Initializer</title>
+  <title>TPTags Main</title>
 </head>
 <body>
-  <h1>TPTags Directory Checker</h1>
+  <div style="background: #eee; padding: 10px;">
+    <button onclick="goToSettings()">Settings</button>
+    <span id="currentDirectory" style="margin-left: 20px; font-weight: bold;"></span>
+    <button id="closeLibraryBtn" style="display:none; margin-left: 10px;">Close Library</button>
+  </div>
+
+  <h1>TPTags - Load a Library</h1>
   <form id="directoryForm">
     <label for="directory">Enter a directory path:</label><br>
     <input type="text" id="directory" name="directory" required><br><br>
     <button type="submit">Check Directory</button>
   </form>
-
   <div id="result"></div>
   <div id="initPrompt" style="display:none;">
     <button id="initButton">Initialize .tptags folder</button>
   </div>
 
-  <hr>
-  <h2>Create a Tag</h2>
-  <form id="tagForm" style="display:none;">
-    <label for="tagName">Tag Name:</label><br>
-    <input type="text" id="tagName" name="tagName" required><br><br>
-    <button type="submit">Create Tag</button>
-  </form>
-  <div id="tagResult"></div>
-
-  <hr>
-  <h2>Tags</h2>
-  <div id="tagList"></div>
-
-  <hr>
-  <h2>Create a Tag Group</h2>
-  <form id="groupForm" style="display:none;">
-    <label for="groupName">Group Name:</label><br>
-    <input type="text" id="groupName" required><br><br>
-  
-    <label>Select Tags:</label><br>
-    <div id="groupTagCheckboxes"></div><br>
-  
-    <button type="submit">Create Tag Group</button>
-  </form>
-  <div id="groupResult"></div>
-  
-  <hr>
-  <h2>Tag Groups</h2>
-  <div id="groupList"></div>
-
-
   <script>
-    const form = document.getElementById('directoryForm');
-    const resultDiv = document.getElementById('result');
-    const initPrompt = document.getElementById('initPrompt');
-    const initButton = document.getElementById('initButton');
-    const tagForm = document.getElementById('tagForm');
-    const tagResult = document.getElementById('tagResult');
-    const tagList = document.getElementById('tagList');
-    const groupForm = document.getElementById('groupForm');
-    const groupResult = document.getElementById('groupResult');
-    const groupTagCheckboxes = document.getElementById('groupTagCheckboxes');
-    const groupList = document.getElementById('groupList');
     let currentDirectory = '';
 
-    // Load and display tags
-    async function loadTags() {
-    const res = await fetch('/get-tags', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ directory: currentDirectory })
-    });
-
-    const data = await res.json();
-    tagList.innerHTML = '';
-
-    if (!data.tags || data.tags.length === 0) {
-        tagList.innerText = 'No tags found.';
+    function goToSettings() {
+      if (!currentDirectory) {
+        alert("Please load a library first.");
         return;
+      }
+      sessionStorage.setItem('currentDirectory', currentDirectory);
+      window.location.href = 'settings.html';
     }
 
-    data.tags.forEach(tag => {
-        const div = document.createElement('div');
-        div.innerHTML = `
-        <strong>${tag.name}</strong> (ID: ${tag.id})
-        <button data-id="${tag.id}">Delete</button>
-        `;
-        tagList.appendChild(div);
-    });
-
-    document.querySelectorAll('#tagList button').forEach(btn => {
-        btn.addEventListener('click', async () => {
-        const tagId = parseInt(btn.getAttribute('data-id'));
-        const confirmed = confirm(`Delete tag ID ${tagId}?`);
-        if (!confirmed) return;
-
-        const res = await fetch('/delete-tag', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ directory: currentDirectory, tagId })
-        });
-
-        const result = await res.json();
-        if (result.success) {
-            loadTagsAndGroups();
-        } else if (result.requiresConfirmation) {
-            const groupNames = result.groups.map(g => g.name).join(', ');
-            const confirmDelete = confirm(
-            `This tag is used in the following group(s): ${groupNames}. Delete it anyway?`
-            );
-
-            if (confirmDelete) {
-            const res2 = await fetch('/delete-tag', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ directory: currentDirectory, tagId, force: true })
-            });
-
-            const data2 = await res2.json();
-            if (data2.success) {
-                loadTagsAndGroups();
-            } else {
-                alert('Failed to delete tag: ' + data2.error);
-            }
-            }
-        } else {
-            alert('Failed to delete tag: ' + result.error);
-        }
-        });
-    });
+    function clearLibrary() {
+      currentDirectory = '';
+      sessionStorage.removeItem('currentDirectory');
+      document.getElementById('currentDirectory').innerText = '';
+      document.getElementById('closeLibraryBtn').style.display = 'none';
+      document.getElementById('result').innerText = '';
     }
 
+    document.getElementById('closeLibraryBtn').addEventListener('click', clearLibrary);
 
-    // Check directory
-    form.addEventListener('submit', async (e) => {
+    document.getElementById('directoryForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const directory = document.getElementById('directory').value;
-      currentDirectory = directory;
 
       const response = await fetch('/check-directory', {
         method: 'POST',
@@ -143,22 +55,20 @@
       });
 
       const data = await response.json();
-      resultDiv.innerText = data.message;
+      document.getElementById('result').innerText = data.message;
 
       if (!data.exists) {
-        initPrompt.style.display = 'block';
-        tagForm.style.display = 'none';
-        tagList.innerHTML = '';
+        document.getElementById('initPrompt').style.display = 'block';
       } else {
-        initPrompt.style.display = 'none';
-        tagForm.style.display = 'block';
-        groupForm.style.display = 'block';
-        loadTagsAndGroups();
+        document.getElementById('initPrompt').style.display = 'none';
+        currentDirectory = directory;
+        sessionStorage.setItem('currentDirectory', currentDirectory);
+        document.getElementById('currentDirectory').innerText = 'Loaded: ' + currentDirectory;
+        document.getElementById('closeLibraryBtn').style.display = 'inline-block';
       }
     });
 
-    // Initialize .tptags
-    initButton.addEventListener('click', async () => {
+    document.getElementById('initButton').addEventListener('click', async () => {
       const response = await fetch('/check-directory', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -166,134 +76,21 @@
       });
 
       const data = await response.json();
-      resultDiv.innerText = data.message;
-      initPrompt.style.display = 'none';
-      tagForm.style.display = 'block';
-      loadTags();
+      document.getElementById('result').innerText = data.message;
+      document.getElementById('initPrompt').style.display = 'none';
+      document.getElementById('currentDirectory').innerText = 'Loaded: ' + currentDirectory;
+      document.getElementById('closeLibraryBtn').style.display = 'inline-block';
     });
 
-    // Create a tag
-    tagForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const tagName = document.getElementById('tagName').value;
-
-      const response = await fetch('/create-tag', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ directory: currentDirectory, tagName })
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        tagResult.innerText = `Created tag "${data.tag.name}" with ID ${data.tag.id}.`;
-        tagForm.reset();
-        loadTagsAndGroups();
-      } else {
-        tagResult.innerText = `Error: ${data.error}`;
+    // Auto-load directory from sessionStorage
+    window.addEventListener('load', () => {
+      const stored = sessionStorage.getItem('currentDirectory');
+      if (stored) {
+        currentDirectory = stored;
+        document.getElementById('currentDirectory').innerText = 'Loaded: ' + currentDirectory;
+        document.getElementById('closeLibraryBtn').style.display = 'inline-block';
       }
     });
-
-        async function loadGroups() {
-      const res = await fetch('/get-tag-groups', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ directory: currentDirectory })
-      });
-
-      const data = await res.json();
-      groupList.innerHTML = '';
-
-      if (!data.groups || data.groups.length === 0) {
-        groupList.innerText = 'No groups found.';
-        return;
-      }
-
-      data.groups.forEach(group => {
-        const div = document.createElement('div');
-        div.innerHTML = `
-          <strong>${group.name}</strong> (ID: ${group.id})<br>
-          Tags: ${group.ids.join(', ')}<br>
-          <button data-id="${group.id}">Delete</button>
-          <hr>
-        `;
-        groupList.appendChild(div);
-      });
-
-      document.querySelectorAll('#groupList button').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          const groupId = parseInt(btn.getAttribute('data-id'));
-          const confirmed = confirm(`Delete group ID ${groupId}?`);
-          if (!confirmed) return;
-
-          const res = await fetch('/delete-tag-group', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ directory: currentDirectory, groupId })
-          });
-
-          const result = await res.json();
-          if (result.success) {
-            loadGroups();
-          } else {
-            alert('Failed to delete group: ' + result.error);
-          }
-        });
-      });
-    }
-
-    groupForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const groupName = document.getElementById('groupName').value;
-      const selectedIds = Array.from(groupTagCheckboxes.querySelectorAll('input[type="checkbox"]:checked'))
-        .map(cb => parseInt(cb.value));
-
-      if (selectedIds.length < 2) {
-        groupResult.innerText = 'Please select at least two tags.';
-        return;
-      }
-
-      const res = await fetch('/create-tag-group', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ directory: currentDirectory, groupName, tagIds: selectedIds })
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        groupResult.innerText = `Created group "${data.group.name}" with ID ${data.group.id}`;
-        groupForm.reset();
-        loadGroups();
-      } else {
-        groupResult.innerText = 'Error: ' + data.error;
-      }
-    });
-
-    function refreshTagCheckboxes(tags) {
-      groupTagCheckboxes.innerHTML = '';
-      tags.forEach(tag => {
-        const label = document.createElement('label');
-        label.innerHTML = `
-          <input type="checkbox" value="${tag.id}"> ${tag.name} (ID: ${tag.id})<br>
-        `;
-        groupTagCheckboxes.appendChild(label);
-      });
-    }
-
-    async function loadTagsAndGroups() {
-      const res = await fetch('/get-tags', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ directory: currentDirectory })
-      });
-
-      const data = await res.json();
-      if (!data.tags) return;
-
-      refreshTagCheckboxes(data.tags);
-      loadTags();
-      loadGroups();
-    }
-
   </script>
 </body>
 </html>

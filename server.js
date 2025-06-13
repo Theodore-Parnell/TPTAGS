@@ -1,7 +1,9 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
-const path = require('path');   
+const path = require('path');
+const { exec } = require('child_process');
+const os = require('os');
 
 const app = express();
 const PORT = 3000;
@@ -207,5 +209,13 @@ app.post('/delete-tag-group', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server is running at http://localhost:${PORT}`);
+  const url = `http://localhost:${PORT}`
+  const platform = os.platform();
+  if (platform === 'win32') {
+    exec(`start ${url}`);
+  } else if (platform === 'darwin') {
+    exec(`open ${url}`);
+  } else {
+    exec(`xdg-open ${url}`);
+  }
 });
