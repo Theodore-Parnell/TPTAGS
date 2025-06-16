@@ -4,8 +4,7 @@
   "bin": "server.js",
   "main": "index.js",
   "scripts": {
-    "start": "node server.js",
-    "compress": "pkg ."
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",

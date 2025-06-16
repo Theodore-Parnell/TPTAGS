@@ -1,1 +1,5 @@
 make tags automatically replace spaces with dashes
+make edit tag option
+
+note:
+'pkg .' to compress files to executeables
