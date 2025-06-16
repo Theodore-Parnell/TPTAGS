@@ -51,17 +51,18 @@
       const response = await fetch('/check-directory', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ directory })
+        body: JSON.stringify({ directory, initialize: false })
       });
 
       const data = await response.json();
       document.getElementById('result').innerText = data.message;
 
+        currentDirectory = directory;
+
       if (!data.exists) {
         document.getElementById('initPrompt').style.display = 'block';
       } else {
         document.getElementById('initPrompt').style.display = 'none';
-        currentDirectory = directory;
         sessionStorage.setItem('currentDirectory', currentDirectory);
         document.getElementById('currentDirectory').innerText = 'Loaded: ' + currentDirectory;
         document.getElementById('closeLibraryBtn').style.display = 'inline-block';

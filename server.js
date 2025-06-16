@@ -46,10 +46,146 @@ app.post('/check-directory', (req, res) => {
 
       const libraryJsonPath = path.join(tpTagsPath, 'library.json');
       fs.writeFileSync(libraryJsonPath, JSON.stringify({
-        tags: [],
-        tagGroups: [],
-        entries: []
-      }, null, 2));
+      "tags": [
+        {
+          "name": "jpg",
+          "aliases": ["jpeg"],
+          "id": "1842"
+        },
+        {
+          "name": "png",
+          "aliases": [],
+          "id": "9271"
+        },
+        {
+          "name": "gif",
+          "aliases": [],
+          "id": "3405"
+        },
+        {
+          "name": "webp",
+          "aliases": [],
+          "id": "6509"
+        },
+        {
+          "name": "bmp",
+          "aliases": ["bitmap"],
+          "id": "7032"
+        },
+        {
+          "name": "tiff",
+          "aliases": ["tif"],
+          "id": "8654"
+        },
+        {
+          "name": "svg",
+          "aliases": ["svgz"],
+          "id": "1127"
+        },
+        {
+          "name": "heic",
+          "aliases": ["heif"],
+          "id": "5930"
+        },
+        {
+          "name": "ico",
+          "aliases": ["icon"],
+          "id": "7783"
+        },
+        {
+          "name": "avif",
+          "aliases": [],
+          "id": "4516"
+        },
+        {
+          "name": "mp4",
+          "aliases": ["m4v"],
+          "id": "2398"
+        },
+        {
+          "name": "webm",
+          "aliases": [],
+          "id": "3806"
+        },
+        {
+          "name": "mov",
+          "aliases": ["qt"],
+          "id": "9612"
+        },
+        {
+          "name": "avi",
+          "aliases": [],
+          "id": "3247"
+        },
+        {
+          "name": "mkv",
+          "aliases": [],
+          "id": "4065"
+        },
+        {
+          "name": "flv",
+          "aliases": [],
+          "id": "1940"
+        },
+        {
+          "name": "mpeg",
+          "aliases": ["mpg"],
+          "id": "8123"
+        },
+        {
+          "name": "3gp",
+          "aliases": [],
+          "id": "6681"
+        },
+        {
+          "name": "wmv",
+          "aliases": [],
+          "id": "5572"
+        },
+        {
+          "name": "favorites",
+          "aliases": [],
+          "id": "8937"
+        }
+      ],
+      "tagGroups": [
+        {
+          "name": "image",
+          "aliases": [],
+          "id": "9001",
+          "ids": [
+            "1842",
+            "9271",
+            "3405",
+            "6509",
+            "7032",
+            "8654",
+            "1127",
+            "5930",
+            "7783",
+            "4516"
+          ]
+        },
+        {
+          "name": "video",
+          "aliases": [],
+          "id": "9002",
+          "ids": [
+            "2398",
+            "3806",
+            "9612",
+            "3247",
+            "4065",
+            "1940",
+            "8123",
+            "6681",
+            "5572"
+          ]
+        }
+      ],
+      "entries": []
+    }
+    , null, 2));
 
       return res.json({ initialized: true, message: '.tptags folder was created.' });
     } catch (err) {
@@ -61,7 +197,7 @@ app.post('/check-directory', (req, res) => {
 });
 
 app.post('/create-tag', (req, res) => {
-  const { directory, tagName } = req.body;
+  const { directory, tagName, aliases = [] } = req.body;
   const libraryPath = path.join(directory, '.tptags', 'library.json');
 
   if (!fs.existsSync(libraryPath)) {
@@ -77,13 +213,11 @@ app.post('/create-tag', (req, res) => {
 
   const existingIDs = new Set(libraryData.tags.map(tag => tag.id));
   let newId;
-
-  // Generate unique 4-digit ID
   do {
     newId = Math.floor(1000 + Math.random() * 9000);
-  } while (existingIDs.has(newId));
+  } while (existingIDs.has(String(newId)));
 
-  const newTag = { name: tagName, id: newId };
+  const newTag = { name: tagName, id: String(newId), aliases };
   libraryData.tags.push(newTag);
 
   try {
@@ -159,12 +293,10 @@ app.post('/get-tag-groups', (req, res) => {
 });
 
 app.post('/create-tag-group', (req, res) => {
-  const { directory, groupName, tagIds } = req.body;
+  const { directory, groupName, tagIds, aliases = [] } = req.body;
 
   try {
     const lib = loadLibrary(directory);
-
-    // Check for unique ID
     let id;
     do {
       id = Math.floor(1000 + Math.random() * 9000);
@@ -175,8 +307,9 @@ app.post('/create-tag-group', (req, res) => {
 
     const newGroup = {
       name: groupName,
-      id,
-      ids: tagIds
+      id: String(id),
+      ids: tagIds.map(String),
+      aliases
     };
 
     lib.tagGroups.push(newGroup);

@@ -15,6 +15,8 @@
   <form id="tagForm">
     <label for="tagName">Tag Name:</label><br>
     <input type="text" id="tagName" name="tagName" required><br><br>
+    <label for="tagAliases">Aliases (comma-separated):</label><br>
+    <input type="text" id="tagAliases" name="tagAliases"><br><br>
     <button type="submit">Create Tag</button>
   </form>
   <div id="tagResult"></div>
@@ -28,6 +30,8 @@
   <form id="groupForm">
     <label for="groupName">Group Name:</label><br>
     <input type="text" id="groupName" required><br><br>
+    <label for="groupAliases">Group Aliases (comma-separated):</label><br>
+    <input type="text" id="groupAliases"><br><br>
   
     <label>Select Tags:</label><br>
     <div id="groupTagCheckboxes"></div><br>
@@ -93,9 +97,10 @@
       }
 
       data.tags.forEach(tag => {
+        const aliases = tag.aliases ? `Aliases: ${tag.aliases.join(', ')}` : '';
         const div = document.createElement('div');
         div.innerHTML = `
-          <strong>${tag.name}</strong> (ID: ${tag.id})
+          <strong>${tag.name}</strong> (ID: ${tag.id})<br>${aliases}
           <button data-id="${tag.id}">Delete</button>
         `;
         tagList.appendChild(div);
@@ -146,12 +151,13 @@
     tagForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const tagName = document.getElementById('tagName').value;
+      const tagAliases = document.getElementById('tagAliases').value.split(',').map(s => s.trim()).filter(Boolean);
 
       const response = await fetch('/create-tag', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ directory: currentDirectory, tagName })
-      });
+        body: JSON.stringify({ directory: currentDirectory, tagName, aliases: tagAliases })
+      }); 
 
       const data = await response.json();
       if (data.success) {
@@ -166,6 +172,7 @@
     groupForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const groupName = document.getElementById('groupName').value;
+      const groupAliases = document.getElementById('groupAliases').value.split(',').map(s => s.trim()).filter(Boolean);
       const selectedIds = Array.from(groupTagCheckboxes.querySelectorAll('input[type="checkbox"]:checked')).map(cb => parseInt(cb.value));
 
       if (selectedIds.length < 2) {
@@ -176,7 +183,7 @@
       const res = await fetch('/create-tag-group', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ directory: currentDirectory, groupName, tagIds: selectedIds })
+        body: JSON.stringify({ directory: currentDirectory, groupName, tagIds: selectedIds, aliases: groupAliases })
       });
 
       const data = await res.json();
@@ -204,10 +211,15 @@
         return;
       }
 
-      data.groups.forEach(group => {
+        data.groups.forEach(group => {
+        const aliases = group.aliases && group.aliases.length > 0
+          ? `Aliases: ${group.aliases.join(', ')}<br>`
+          : '';
+
         const div = document.createElement('div');
         div.innerHTML = `
           <strong>${group.name}</strong> (ID: ${group.id})<br>
+          ${aliases}
           Tags: ${group.ids.join(', ')}<br>
           <button data-id="${group.id}">Delete</button>
           <hr>
